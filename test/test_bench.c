@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <getopt.h>
 #include <sched.h>
 
 #include "swiglu_ffn.h"
@@ -559,46 +560,6 @@ static void print_text_report(
  */
 
 /*
- * 解析 "--key=value" 格式的参数
- * 返回：0 成功，-1 未知参数，-2 值无效
- */
-static int parse_int_arg(const char* arg, const char* key, int* value) {
-    // 检查前缀 "--key="
-    size_t key_len = strlen(key);
-    if (strncmp(arg, "--", 2) != 0) return -1;
-    if (strncmp(arg + 2, key, key_len) != 0) return -1;
-    if (arg[2 + key_len] != '=') return -1;
-
-    const char* val_str = arg + 2 + key_len + 1; // 跳过 "--key="
-    char* endptr;
-    long v = strtol(val_str, &endptr, 10);
-    if (*endptr != '\0' || endptr == val_str) return -2;
-    *value = (int)v;
-    return 0;
-}
-
-/*
- * 解析 "--key=<path>" 格式的字符串参数
- * 返回：0 成功，-1 未知参数
- */
-static int parse_str_arg(const char* arg, const char* key, const char** value) {
-    size_t key_len = strlen(key);
-    if (strncmp(arg, "--", 2) != 0) return -1;
-    if (strncmp(arg + 2, key, key_len) != 0) return -1;
-    if (arg[2 + key_len] != '=') return -1;
-
-    *value = arg + 2 + key_len + 1; // 指向值字符串
-    return 0;
-}
-
-/*
- * 检查 "--help" 标志
- */
-static bool is_help(const char* arg) {
-    return strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0;
-}
-
-/*
  * 打印帮助信息
  */
 static void print_help(void) {
@@ -622,6 +583,8 @@ static void print_help(void) {
 /*
  * 解析所有命令行参数，填充配置结构体
  *
+ * 使用 POSIX getopt_long 进行参数解析，支持 --key=value 和 --key value 两种形式。
+ *
  * 返回：0 成功，-1 参数错误，-2 需要退出（如 --help）
  */
 static int parse_args(int argc, char** argv, bench_config_t* cfg) {
@@ -635,68 +598,69 @@ static int parse_args(int argc, char** argv, bench_config_t* cfg) {
     cfg->min_calls = 50;
     cfg->json_output = "./ffn_bench_result.json";
 
-    for (int i = 1; i < argc; i++) {
-        if (is_help(argv[i])) {
-            print_help();
-            return -2;
+    /*
+     * struct option 数组，定义所有长选项
+     *
+     * { 名称, 是否需要参数, 标志位（NULL=直接返回val）, val }
+     * has_arg: no_argument=0, required_argument=1, optional_argument=2
+     */
+    static struct option long_options[] = {
+        {"d_model",     required_argument, NULL, 'm'},
+        {"d_ff",        required_argument, NULL, 'f'},
+        {"seed",        required_argument, NULL, 's'},
+        {"cpu",         required_argument, NULL, 'c'},
+        {"warmup",      required_argument, NULL, 'w'},
+        {"runtime",     required_argument, NULL, 'r'},
+        {"min-calls",   required_argument, NULL, 'n'},
+        {"json-output", required_argument, NULL, 'o'},
+        {"help",        no_argument,       NULL, 'h'},
+        {NULL, 0, NULL, 0}
+    };
+
+    int opt;
+    int option_index = 0;
+
+    while ((opt = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
+        switch (opt) {
+            case 'm': // --d_model
+                cfg->d_model = atoi(optarg);
+                break;
+            case 'f': // --d_ff
+                cfg->d_ff = atoi(optarg);
+                break;
+            case 's': // --seed
+                cfg->seed = atoi(optarg);
+                break;
+            case 'c': // --cpu
+                cfg->cpu = atoi(optarg);
+                break;
+            case 'w': // --warmup
+                cfg->warmup_sec = atoi(optarg);
+                break;
+            case 'r': // --runtime
+                cfg->runtime_sec = atoi(optarg);
+                break;
+            case 'n': // --min-calls
+                cfg->min_calls = atoi(optarg);
+                break;
+            case 'o': // --json-output
+                cfg->json_output = optarg;
+                break;
+            case 'h': // --help
+                print_help();
+                return -2;
+            case '?': // 未知参数或缺少参数值（getopt_long 已打印错误）
+                fprintf(stderr, "使用 --help 查看帮助信息。\n");
+                return -1;
+            default:
+                fprintf(stderr, "错误: 未知选项\n");
+                return -1;
         }
+    }
 
-        int ret;
-
-        ret = parse_int_arg(argv[i], "d_model", &cfg->d_model);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --d_model 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "d_ff", &cfg->d_ff);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --d_ff 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "seed", &cfg->seed);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --seed 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "cpu", &cfg->cpu);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --cpu 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "warmup", &cfg->warmup_sec);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --warmup 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "runtime", &cfg->runtime_sec);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --runtime 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_int_arg(argv[i], "min-calls", &cfg->min_calls);
-        if (ret == 0) continue;
-        if (ret == -2) {
-            fprintf(stderr, "错误: 无效的 --min-calls 值: %s\n", argv[i]);
-            return -1;
-        }
-
-        ret = parse_str_arg(argv[i], "json-output", &cfg->json_output);
-        if (ret == 0) continue;
-
-        // 未识别的参数
-        fprintf(stderr, "错误: 未知参数: %s\n", argv[i]);
+    // 检查是否有多余的非选项参数
+    if (optind < argc) {
+        fprintf(stderr, "错误: 未知参数: %s\n", argv[optind]);
         fprintf(stderr, "使用 --help 查看帮助信息。\n");
         return -1;
     }
