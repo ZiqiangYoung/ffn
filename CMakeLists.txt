@@ -6,6 +6,7 @@
 #   test_utils    — 静态库（test_utils）
 #   test_small    — 可执行文件（d_model=4, d_ff=8 测试）
 #   test_large    — 可执行文件（d_model=2048, d_ff=7168 测试）
+#   test_bench    — 可执行文件（性能评测）
 
 cmake_minimum_required(VERSION 3.10)
 project(swiglu_ffn C)
@@ -64,6 +65,18 @@ add_executable(test_large
     test/test_large.c
 )
 target_link_libraries(test_large PRIVATE
+    swiglu_ffn
+    generate_data
+    test_utils
+    OpenSSL::Crypto
+    m
+)
+
+# test_bench — 性能评测程序
+add_executable(test_bench
+    test/test_bench.c
+)
+target_link_libraries(test_bench PRIVATE
     swiglu_ffn
     generate_data
     test_utils
