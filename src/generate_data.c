@@ -95,3 +95,59 @@ float* generate_W_down(int d_model, int d_ff, int seed) {
     fill_random(W_down, count, seed, "W_down");
     return W_down;
 }
+
+/*
+ * =========================================================================
+ * 路由器权重和逐专家权重生成
+ * =========================================================================
+ */
+
+float* generate_W_router(int d_model, int num_experts, int seed) {
+    int count = d_model * num_experts;
+    float* W_router = (float*)malloc((size_t)count * sizeof(float));
+    assert(W_router != NULL);
+    fill_random(W_router, count, seed, "W_router");
+    return W_router;
+}
+
+float* generate_W_gate_expert(int d_model, int d_ff, int seed, int expert_id) {
+    int count = d_model * d_ff;
+    float* W_gate = (float*)malloc((size_t)count * sizeof(float));
+    assert(W_gate != NULL);
+
+    // 构造标签 "W_gate_<expert_id>"
+    char tag[256];
+    int written = snprintf(tag, sizeof(tag), "W_gate_%d", expert_id);
+    assert(written > 0 && (size_t)written < sizeof(tag));
+
+    fill_random(W_gate, count, seed, tag);
+    return W_gate;
+}
+
+float* generate_W_up_expert(int d_model, int d_ff, int seed, int expert_id) {
+    int count = d_model * d_ff;
+    float* W_up = (float*)malloc((size_t)count * sizeof(float));
+    assert(W_up != NULL);
+
+    // 构造标签 "W_up_<expert_id>"
+    char tag[256];
+    int written = snprintf(tag, sizeof(tag), "W_up_%d", expert_id);
+    assert(written > 0 && (size_t)written < sizeof(tag));
+
+    fill_random(W_up, count, seed, tag);
+    return W_up;
+}
+
+float* generate_W_down_expert(int d_model, int d_ff, int seed, int expert_id) {
+    int count = d_ff * d_model;
+    float* W_down = (float*)malloc((size_t)count * sizeof(float));
+    assert(W_down != NULL);
+
+    // 构造标签 "W_down_<expert_id>"
+    char tag[256];
+    int written = snprintf(tag, sizeof(tag), "W_down_%d", expert_id);
+    assert(written > 0 && (size_t)written < sizeof(tag));
+
+    fill_random(W_down, count, seed, tag);
+    return W_down;
+}

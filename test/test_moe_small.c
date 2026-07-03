@@ -1,0 +1,78 @@
+/*
+ * test_moe_small.c — MoE 小维度测试
+ *
+ * 使用 d_model=4, d_ff=8, num_experts=4, top_k=2 的小维度测试 MoE 层。
+ * 打印输入向量和输出向量的全部 4 个值。
+ * 不打印路由 logits、选中专家索引/权重、中间专家输出。
+ * 不进行数值正确性断言。
+ */
+
+#include "swiglu_moe.h"
+#include "generate_data.h"
+#include "test_utils.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int d_model = 4;
+    int d_ff = 8;
+    int num_experts = 4;
+    int top_k = 2;
+    int seed = 42;
+
+    printf("============================================================\n");
+    printf("  SwiGLU MoE 小维度测试\n");
+    printf("  d_model = %d, d_ff = %d, num_experts = %d, top_k = %d\n",
+           d_model, d_ff, num_experts, top_k);
+    printf("  seed = %d\n", seed);
+    printf("============================================================\n\n");
+
+    // 生成输入向量
+    float* input = generate_input(d_model, seed);
+
+    // 生成路由器权重矩阵
+    float* W_router = generate_W_router(d_model, num_experts, seed);
+
+    // 为每个专家生成权重矩阵
+    float* W_gate[num_experts];
+    float* W_up[num_experts];
+    float* W_down[num_experts];
+
+    for (int e = 0; e < num_experts; e++) {
+        W_gate[e] = generate_W_gate_expert(d_model, d_ff, seed, e);
+        W_up[e]   = generate_W_up_expert(d_model, d_ff, seed, e);
+        W_down[e] = generate_W_down_expert(d_model, d_ff, seed, e);
+    }
+
+    // 分配输出向量
+    float* output = (float*)malloc((size_t)d_model * sizeof(float));
+    if (output == NULL) {
+        fprintf(stderr, "输出向量内存分配失败\n");
+        return 1;
+    }
+
+    // 执行 SwiGLU MoE 前向计算
+    swiglu_moe(input, W_router,
+               (const float**)W_gate, (const float**)W_up, (const float**)W_down,
+               num_experts, top_k, d_model, d_ff, output);
+
+    // 打印结果
+    printf("输入向量 ");
+    print_vector(input, d_model, 4, 0, "input");
+
+    printf("输出向量 ");
+    print_vector(output, d_model, 4, 0, "output");
+
+    // 释放所有资源
+    free(input);
+    free(W_router);
+    for (int e = 0; e < num_experts; e++) {
+        free(W_gate[e]);
+        free(W_up[e]);
+        free(W_down[e]);
+    }
+    free(output);
+
+    printf("\n测试完成。\n");
+    return 0;
+}

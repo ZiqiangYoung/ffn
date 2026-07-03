@@ -1,12 +1,17 @@
-# CMakeLists.txt — SwiGLU FFN 项目构建配置
+# CMakeLists.txt — SwiGLU FFN + MoE 项目构建配置
 #
 # 构建目标：
 #   swiglu_ffn    — 静态库（silu + matvec + swiglu_ffn）
 #   generate_data — 静态库（generate_data）
 #   test_utils    — 静态库（test_utils）
+#   softmax       — 静态库（softmax）
+#   topk          — 静态库（topk）
+#   swiglu_moe    — 静态库（swiglu_moe）
 #   test_small    — 可执行文件（d_model=4, d_ff=8 测试）
 #   test_large    — 可执行文件（d_model=2048, d_ff=7168 测试）
 #   test_bench    — 可执行文件（性能评测）
+#   test_moe_small — 可执行文件（MoE 小维度测试）
+#   test_moe_large — 可执行文件（MoE 大维度测试）
 
 cmake_minimum_required(VERSION 3.10)
 project(swiglu_ffn C)
@@ -44,6 +49,25 @@ add_library(test_utils STATIC
 )
 target_include_directories(test_utils PUBLIC include)
 
+# softmax — Softmax 归一化
+add_library(softmax STATIC
+    src/softmax.c
+)
+target_include_directories(softmax PUBLIC include)
+
+# topk — Top-k 选择
+add_library(topk STATIC
+    src/topk.c
+)
+target_include_directories(topk PUBLIC include)
+
+# swiglu_moe — MoE 层编排（依赖 swiglu_ffn + softmax + topk）
+add_library(swiglu_moe STATIC
+    src/swiglu_moe.c
+)
+target_include_directories(swiglu_moe PUBLIC include)
+target_link_libraries(swiglu_moe PUBLIC swiglu_ffn softmax topk m)
+
 # ============================================================================
 # 测试可执行文件
 # ============================================================================
@@ -77,6 +101,32 @@ add_executable(test_bench
     test/test_bench.c
 )
 target_link_libraries(test_bench PRIVATE
+    swiglu_ffn
+    generate_data
+    test_utils
+    OpenSSL::Crypto
+    m
+)
+
+# test_moe_small — MoE 小维度测试（4→8，4专家×top-2）
+add_executable(test_moe_small
+    test/test_moe_small.c
+)
+target_link_libraries(test_moe_small PRIVATE
+    swiglu_moe
+    swiglu_ffn
+    generate_data
+    test_utils
+    OpenSSL::Crypto
+    m
+)
+
+# test_moe_large — MoE 大维度测试（2048→7168，8专家×top-2）
+add_executable(test_moe_large
+    test/test_moe_large.c
+)
+target_link_libraries(test_moe_large PRIVATE
+    swiglu_moe
     swiglu_ffn
     generate_data
     test_utils
