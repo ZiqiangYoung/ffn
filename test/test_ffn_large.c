@@ -1,5 +1,5 @@
 /*
- * test_large.c — 大维度 SwiGLU FFN 测试
+ * test_ffn_large.c — FFN 大维度测试
  *
  * 使用 d_model=2048, d_ff=7168 的大维度测试，验证正确性。
  * 打印输出向量的前 5 个和后 5 个值，以及统计摘要（min/max/mean）。

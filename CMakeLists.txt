@@ -7,9 +7,9 @@
 #   softmax       — 静态库（softmax）
 #   topk          — 静态库（topk）
 #   swiglu_moe    — 静态库（swiglu_moe）
-#   test_small    — 可执行文件（d_model=4, d_ff=8 测试）
-#   test_large    — 可执行文件（d_model=2048, d_ff=7168 测试）
-#   test_bench    — 可执行文件（性能评测）
+#   test_ffn_small — 可执行文件（FFN 小维度测试）
+#   test_ffn_large — 可执行文件（FFN 大维度测试）
+#   test_ffn_bench — 可执行文件（FFN 性能评测）
 #   test_moe_small — 可执行文件（MoE 小维度测试）
 #   test_moe_large — 可执行文件（MoE 大维度测试）
 
@@ -72,11 +72,11 @@ target_link_libraries(swiglu_moe PUBLIC swiglu_ffn softmax topk m)
 # 测试可执行文件
 # ============================================================================
 
-# test_small — 小维度测试（d_model=4, d_ff=8）
-add_executable(test_small
-    test/test_small.c
+# test_ffn_small — FFN 小维度测试（d_model=4, d_ff=8）
+add_executable(test_ffn_small
+    test/test_ffn_small.c
 )
-target_link_libraries(test_small PRIVATE
+target_link_libraries(test_ffn_small PRIVATE
     swiglu_ffn
     generate_data
     test_utils
@@ -84,11 +84,11 @@ target_link_libraries(test_small PRIVATE
     m
 )
 
-# test_large — 大维度测试（d_model=2048, d_ff=7168）
-add_executable(test_large
-    test/test_large.c
+# test_ffn_large — FFN 大维度测试（d_model=2048, d_ff=7168）
+add_executable(test_ffn_large
+    test/test_ffn_large.c
 )
-target_link_libraries(test_large PRIVATE
+target_link_libraries(test_ffn_large PRIVATE
     swiglu_ffn
     generate_data
     test_utils
@@ -96,11 +96,11 @@ target_link_libraries(test_large PRIVATE
     m
 )
 
-# test_bench — 性能评测程序
-add_executable(test_bench
-    test/test_bench.c
+# test_ffn_bench — FFN 性能评测程序
+add_executable(test_ffn_bench
+    test/test_ffn_bench.c
 )
-target_link_libraries(test_bench PRIVATE
+target_link_libraries(test_ffn_bench PRIVATE
     swiglu_ffn
     generate_data
     test_utils

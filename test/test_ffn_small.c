@@ -1,5 +1,5 @@
 /*
- * test_small.c — 小维度 SwiGLU FFN 测试
+ * test_ffn_small.c — FFN 小维度测试
  *
  * 使用 d_model=4, d_ff=8 的小维度测试，便于理解计算过程。
  * 打印输入向量和输出向量的全部 4 个值。

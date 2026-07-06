@@ -1,5 +1,5 @@
 /*
- * test_bench.c — SwiGLU FFN 性能评测程序
+ * test_ffn_bench.c — FFN 性能评测程序
  *
  * 以 latency（时延）为核心指标，评估 swiglu_ffn 的性能。
  * 评测策略与 fio（Flexible I/O Tester）保持一致：
@@ -563,7 +563,7 @@ static void print_text_report(
  * 打印帮助信息
  */
 static void print_help(void) {
-    printf("用法: test_bench [选项]\n");
+    printf("用法: test_ffn_bench [选项]\n");
     printf("\n");
     printf("SwiGLU FFN 性能评测程序。以 latency（时延）为核心指标，\n");
     printf("评估 swiglu_ffn 从被调用到返回的单次墙钟时间。\n");
