@@ -12,6 +12,7 @@
 #   test_ffn_bench — 可执行文件（FFN 性能评测）
 #   test_moe_small — 可执行文件（MoE 小维度测试）
 #   test_moe_large — 可执行文件（MoE 大维度测试）
+#   gen_weights   — 可执行文件（权重生成工具）
 
 cmake_minimum_required(VERSION 3.10)
 project(swiglu_ffn C)
@@ -133,3 +134,14 @@ target_link_libraries(test_moe_large PRIVATE
     OpenSSL::Crypto
     m
 )
+
+# ============================================================================
+# 工具可执行文件
+# ============================================================================
+
+# gen_weights — MoE 权重生成工具
+add_executable(gen_weights
+    src/gen_weights.c
+)
+target_include_directories(gen_weights PRIVATE include)
+target_link_libraries(gen_weights PRIVATE generate_data OpenSSL::Crypto)
